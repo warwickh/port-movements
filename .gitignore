@@ -2,6 +2,7 @@ config.yml
 *.dat
 *.txt
 *.csv
+*.xlsx
 !requirements.txt
 
 # Byte-compiled / optimized / DLL files
