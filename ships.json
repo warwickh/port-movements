@@ -1,0 +1,173 @@
+{
+    "257711000": {
+        "SHIPNAME": "HOEGH ASIA",
+        "LAT": "",
+        "LON": "",
+        "IMO": "9191876"
+    },
+    "258720000": {
+        "SHIPNAME": "HOEGH BANGKOK",
+        "LAT": "",
+        "LON": "",
+        "IMO": "9318474"
+    },
+    "257674000": {
+        "SHIPNAME": "HOEGH BEIJING",
+        "LAT": "26.079175000000003",
+        "LON": "-80.11512666666665",
+        "IMO": "9431836",
+        "UPDATED": "1684205911116.4802"
+    },
+    "258106000": {
+        "SHIPNAME": "HOEGH BERLIN",
+        "LAT": "",
+        "LON": "",
+        "IMO": "9295842"
+    },
+    "257824000": {
+        "SHIPNAME": "HOEGH CHIBA",
+        "LAT": "",
+        "LON": "",
+        "IMO": "9303558"
+    },
+    "257368000": {
+        "SHIPNAME": "HOEGH COPENHAGEN",
+        "LAT": "39.23971166666667",
+        "LON": "-76.53076166666666",
+        "IMO": "9420057",
+        "UPDATED": "1684205891931.386"
+    },
+    "257869000": {
+        "SHIPNAME": "HOEGH DETROIT",
+        "LAT": "",
+        "LON": "",
+        "IMO": "9312470"
+    },
+    "258977000": {
+        "SHIPNAME": "HOEGH JACKSONVILLE",
+        "LAT": "",
+        "LON": "",
+        "IMO": "9673379"
+    },
+    "258975000": {
+        "SHIPNAME": "HOEGH JEDDAH",
+        "LAT": "",
+        "LON": "",
+        "IMO": "9673381"
+    },
+    "258981000": {
+        "SHIPNAME": "HOEGH LONDON",
+        "LAT": "",
+        "LON": "",
+        "IMO": "9342205"
+    },
+    "259709000": {
+        "SHIPNAME": "HOEGH MANILA",
+        "LAT": "",
+        "LON": "",
+        "IMO": "9368912"
+    },
+    "257560000": {
+        "SHIPNAME": "HOEGH NEW YORK",
+        "LAT": "",
+        "LON": "",
+        "IMO": "9295830"
+    },
+    "259739000": {
+        "SHIPNAME": "HOEGH OSLO",
+        "LAT": "",
+        "LON": "",
+        "IMO": "9382396"
+    },
+    "257496000": {
+        "SHIPNAME": "HOEGH SEOUL",
+        "LAT": "39.24131666666666",
+        "LON": "-76.52586666666666",
+        "IMO": "9285495",
+        "UPDATED": "1684205861883.912"
+    },
+    "258758000": {
+        "SHIPNAME": "HOEGH SHANGHAI",
+        "LAT": "",
+        "LON": "",
+        "IMO": "9312482"
+    },
+    "257366000": {
+        "SHIPNAME": "HOEGH ST.PETERSBURG",
+        "LAT": "",
+        "LON": "",
+        "IMO": "9420045"
+    },
+    "257864000": {
+        "SHIPNAME": "HOEGH TARGET",
+        "LAT": "",
+        "LON": "",
+        "IMO": "9684976"
+    },
+    "257408000": {
+        "SHIPNAME": "HOEGH TOKYO",
+        "LAT": "",
+        "LON": "",
+        "IMO": "9285483"
+    },
+    "258628000": {
+        "SHIPNAME": "HOEGH TRACER",
+        "LAT": "",
+        "LON": "",
+        "IMO": "9684990"
+    },
+    "258882000": {
+        "SHIPNAME": "HOEGH TRADER",
+        "LAT": "",
+        "LON": "",
+        "IMO": "9171280"
+    },
+    "257712000": {
+        "SHIPNAME": "HOEGH TRANSPORTER",
+        "LAT": "",
+        "LON": "",
+        "IMO": "9176395"
+    },
+    "258872000": {
+        "SHIPNAME": "HOEGH TRAPPER",
+        "LAT": "",
+        "LON": "",
+        "IMO": "9706918"
+    },
+    "259075000": {
+        "SHIPNAME": "HOEGH TRAVELLER",
+        "LAT": "",
+        "LON": "",
+        "IMO": "9710737"
+    },
+    "257713000": {
+        "SHIPNAME": "HOEGH TRIDENT",
+        "LAT": "",
+        "LON": "",
+        "IMO": "9075709"
+    },
+    "258389000": {
+        "SHIPNAME": "HOEGH TRIGGER",
+        "LAT": "",
+        "LON": "",
+        "IMO": "9684988"
+    },
+    "257714000": {
+        "SHIPNAME": "HOEGH TROOPER",
+        "LAT": "",
+        "LON": "",
+        "IMO": "9075711"
+    },
+    "259274000": {
+        "SHIPNAME": "HOEGH TROTTER",
+        "LAT": "",
+        "LON": "",
+        "IMO": "9710749"
+    },
+    "258774000": {
+        "SHIPNAME": "HOEGH TROVE",
+        "LAT": "",
+        "LON": "",
+        "IMO": "9186302"
+    }
+}
