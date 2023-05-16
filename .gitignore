@@ -4,6 +4,8 @@ config.yml
 *.csv
 *.xlsx
 !requirements.txt
+ships.json
+mt_ships.json
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
