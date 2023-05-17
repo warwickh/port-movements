@@ -194,11 +194,35 @@ class AuBneSession:
             (self.comp_ship_movements['JOB TYPE'] == "ARR")]['START TIME'].to_frame()
         return results      
 
+    def get_eta(self):
+        results = self.exp_ship_movements.loc[self.exp_ship_movements['JOB TYPE'] == "ARR"].copy()#['START TIME'].to_frame()
+        results['PORT_ETA'] = results['START TIME']
+        results['PORT'] = 'AUBNE'
+        results = results[['PORT', 'SHIP', 'PORT_ETA']]
+        results.columns = ['PORT', 'SHIP_NAME', 'PORT_ETA']
+        return results    
+        
     def refresh_all(self):
-        self.exp_ship_movements = self.get_exp_ship_movements()
-        self.comp_ship_movements = self.get_comp_ship_movements()
-        self.vessels_at_berth = self.get_vessels_at_berth()
+        try:
+            self.exp_ship_movements = self.get_exp_ship_movements()
+            self.comp_ship_movements = self.get_comp_ship_movements()
+            self.vessels_at_berth = self.get_vessels_at_berth()
+        except:
+            print("Refresh failed. Loading from file") 
+            self.exp_ship_movements = pd.read_csv('aubne_exp_ship_movements.csv')
+            self.comp_ship_movements = pd.read_csv('aubne_comp_ship_movements.csv')
+            self.vessels_at_berth = pd.read_csv('aubne_vessels_at_berth.csv')
+        if self.debug:
+            print(self.exp_ship_movements)
+            print(self.comp_ship_movements)
+            print(self.vessels_at_berth)
+        self.write_to_csv()
         return True
+    
+    def write_to_csv(self):
+        self.exp_ship_movements.to_csv('aubne_exp_ship_movements.csv', encoding='utf-8', index=False)
+        self.comp_ship_movements.to_csv('aubne_comp_ship_movements.csv', encoding='utf-8', index=False)
+        self.vessels_at_berth.to_csv('aubne_vessels_at_berth.csv', encoding='utf-8', index=False)
 
     def legacy_process(self, df):
         df = df.loc[df['Job Type'] == 'ARR']
@@ -209,7 +233,7 @@ class AuBneSession:
         return df
         
 def main():
-    aubnesession = AuBneSession(debug=True)
+    aubnesession = AuBneSession(maxSessionTimeSeconds = 60, debug=True)
     print(aubnesession.get_eta_by_name("MSC ALABAMA III"))
     print(aubnesession.get_ata_by_name("HOEGH TRAVELLER"))
        

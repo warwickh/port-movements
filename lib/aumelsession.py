@@ -152,7 +152,7 @@ class AuMelSession:
                 pass
         filename = 'aumel_%s.csv'%report_code
         df.to_csv(filename, encoding='utf-8', index=False)
-        print(df)
+        #print(df)
         return df
 
     def legacy_process(self, df): #previous processing of csv (expected only)
@@ -177,11 +177,36 @@ class AuMelSession:
             (self.actual_movements['MOVEMENT_T'] == "ARRIVAL")]['TO_DATETIME'].to_frame()
         return results        
 
+    def get_eta(self):
+    
+        results = self.expected_movements.loc[self.expected_movements['MOVEMENT_TYPE'] == "ARRIVAL"].copy()#['ACTL_MVMT_START_DATETIME'].to_frame()
+        results['PORT_ETA'] = results[['ACTL_MVMT_START_DATETIME']]
+        results['PORT'] = 'AUMEL'
+        results = results[['PORT','SHIP_NAME', 'PORT_ETA']]
+        results.columns = ['PORT','SHIP_NAME', 'PORT_ETA']
+        return results
+
     def refresh_all(self):
-        self.expected_movements = self.get_report('expected_movements')
-        self.actual_movements = self.get_report('actual_movements')
-        self.ships_in_port = self.get_report('ships_in_port')  
+        try:
+            self.expected_movements = self.get_report('expected_movements')
+            self.actual_movements = self.get_report('actual_movements')
+            self.ships_in_port = self.get_report('ships_in_port')
+        except:
+            print("Refresh failed. Loading from file") 
+            self.expected_movements = pd.read_csv('aumel_expected_movements.csv')
+            self.actual_movements = pd.read_csv('aumel_actual_movements.csv')
+            self.ships_in_port = pd.read_csv('aumel_ships_in_port.csv')            
+        if self.debug:
+            print(self.expected_movements)
+            print(self.actual_movements)
+            print(self.ships_in_port)
+        self.write_to_csv()
         return True
+    
+    def write_to_csv(self):
+        self.expected_movements.to_csv('aumel_expected_movements.csv', encoding='utf-8', index=False)
+        self.actual_movements.to_csv('aumel_actual_movements.csv', encoding='utf-8', index=False)
+        self.ships_in_port.to_csv('aumel_ships_in_port.csv', encoding='utf-8', index=False)
         
 def main():
     aumelsession = AuMelSession(debug=True)

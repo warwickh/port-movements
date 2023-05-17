@@ -15,6 +15,7 @@ import urllib
 import sqlalchemy as db
 import pandas as pd
 import yaml
+import unidecode
 
 class DbSession:
     def __init__(self,
@@ -36,7 +37,9 @@ class DbSession:
         
     def get_query(self, query):
         return pd.read_sql(db.text(query), con = self.conn)
-
+    
+    def remove_accents(self,a):
+        return unidecode.unidecode(a)
 
 def load_config(config_filename):
     config = None
@@ -57,7 +60,14 @@ def main():
     print(db_session.get_table("T_ANZ_DATAIF3"))
     print(db_session.get_table("T_Cargo_ONWATER"))
     print(db_session.get_table("T_Cargo_Booked_Not_Shipped"))
-    print(db_session.get_query('SELECT "Discharge Port Code","Destination Port Code" FROM T_Cargo_ONWATER where "Discharge Port Code"<>"Destination Port Code"'))
-
+    #print(db_session.get_query('SELECT "Discharge Port Code","Destination Port Code" FROM T_Cargo_ONWATER where "Discharge Port Code"<>"Destination Port Code"'))
+    print(db_session.get_query('SELECT "Vessel Name","B/L No","Origin Port Code","Discharge Port Code","Discharge Port Arrival Date","Destination Port Code" From T_Cargo_ONWATER'))
+    onwater_short = db_session.get_query('SELECT "Vessel Name","B/L No","Origin Port Code","Discharge Port Code","Discharge Port Arrival Date","Destination Port Code" From T_Cargo_ONWATER')
+    onwater_short["Vessel Name"] = onwater_short["Vessel Name"].apply(db_session.remove_accents).str.strip().str.upper()
+    print(onwater_short)
+    #bl = pd.concat(onwater_short["Vessel Name"],onwater_short["B/L No"]).unique()
+    bl = onwater_short.groupby(["Vessel Name","B/L No","Discharge Port Code","Discharge Port Arrival Date","Destination Port Code"]).count().reset_index()
+    print(bl)
+    
 if __name__ == "__main__":
     main()

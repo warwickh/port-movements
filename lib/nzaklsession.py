@@ -98,6 +98,11 @@ class NzAklSession:
             return(time.strftime('%d-%m-%Y %H:%M:%S'))
         except:
             pass
+        try:
+            time = datetime.strptime(value, '%d %b %Y %H:%M')
+            return(time.strftime('%d-%m-%Y %H:%M:%S'))
+        except:
+            pass
         print("No format found for %s"%value)
         return ""
     
@@ -129,6 +134,10 @@ class NzAklSession:
         df = pd.read_html(data.text)[0]
         #df['port_eta'] = df['Arrival'].str.strip().apply(convert_string_time)
         df.columns = df.columns.str.upper()
+        try:
+            df['Arrival']=df['Arrival'].str.strip().apply(self.convert_string_time)
+        except:
+            pass
         for column in df.columns:
             try:
                 df[column] = df[column].str.strip().str.upper()
@@ -139,10 +148,26 @@ class NzAklSession:
         return df
 
     def refresh_all(self):
-        self.arrivals = self.get_report('arrivals')
-        self.departures = self.get_report('departures')
-        self.vessels_in_port = self.get_report('vessels-in-port')
+        try:
+            self.arrivals = self.get_report('arrivals')
+            self.departures = self.get_report('departures')
+            self.vessels_in_port = self.get_report('vessels-in-port')
+        except:
+            print("Refresh failed. Loading from file")
+            self.arrivals = pd.read_csv('nzakl_arrivals.csv')
+            self.departures = pd.read_csv('nzakl_departures.csv')
+            self.vessels_in_port = pd.read_csv('nzakl_vessels_in_port.csv')
+        if self.debug:
+            print(self.arrivals)
+            print(self.departures)
+            print(self.vessels_in_port)
+        self.write_to_csv()
         return True
+    
+    def write_to_csv(self):
+        self.arrivals.to_csv('nzakl_arrivals.csv', encoding='utf-8', index=False)
+        self.departures.to_csv('nzakl_departures.csv', encoding='utf-8', index=False)
+        self.vessels_in_port.to_csv('nzakl_vessels_in_port.csv', encoding='utf-8', index=False)
 
     def get_eta_by_name(self, vessel_name):
         vessel_name = vessel_name.strip().upper()
@@ -153,7 +178,15 @@ class NzAklSession:
         vessel_name = vessel_name.strip().upper()
         results = self.departures.loc[self.departures['VESSEL'] == vessel_name]['ARRIVAL'].to_frame()
         return results
-    
+
+    def get_eta(self):
+        results = self.arrivals.copy()
+        results['PORT_ETA'] = results['ARRIVAL'].str.strip().apply(self.convert_string_time)
+        results['PORT'] = 'NZAKL'
+        results = results[['PORT', 'VESSEL', 'PORT_ETA']]
+        results.columns = ['PORT', 'SHIP_NAME', 'PORT_ETA']
+        return results    
+
     def legacy_process(self, df):
         df = df[['Vessel', 'Arrival']]
         df.columns = ['ship_name', 'port_eta']

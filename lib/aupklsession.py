@@ -136,6 +136,10 @@ class AuPklSession:
         df = pd.json_normalize(pkl_data['items'])
         #export_table("pkl_eta", df)
         df.columns = df.columns.str.upper()
+        try:
+            df['TIME']=df['TIME'].str.strip().apply(self.convert_string_time)
+        except:
+            pass
         for column in df.columns:
             try:
                 df[column] = df[column].str.strip().str.upper()
@@ -165,6 +169,14 @@ class AuPklSession:
     #    results = self.comp_ship_movements.loc[(self.comp_ship_movements['SHIP'] == vessel_name) &
     #        (self.comp_ship_movements['JOB TYPE'] == "ARR")]['START TIME'].to_frame()
     #    return results 
+
+    def get_eta(self):
+        results = self.daily_vessel_movements.loc[(self.daily_vessel_movements['MOVEMENTTYPE'] == "ARRIVAL")].copy()#['TIME'].to_frame()
+        results['PORT_ETA'] = results['TIME']
+        results['PORT'] = 'AUPKL'
+        results = results[['PORT','VESSELNAME', 'PORT_ETA']]
+        results.columns = ['PORT','SHIP_NAME', 'PORT_ETA']
+        return results
     
     def get_is_inport(self, vessel_name):
         results = self.daily_vessel_movements.loc[(self.daily_vessel_movements['VESSELNAME'] == vessel_name) &
@@ -172,8 +184,19 @@ class AuPklSession:
         return len(results)>0
     
     def refresh_all(self):
-        self.daily_vessel_movements = self.get_report()
-        
+        try:
+            self.daily_vessel_movements = self.get_report()
+        except:
+            print("Refresh failed. Loading from file")
+            self.daily_vessel_movements = pd.read_csv('aupkl_daily_vessel_movements.csv')
+        if self.debug:
+            print(self.daily_vessel_movements)
+        self.write_to_csv()
+        return True
+    
+    def write_to_csv(self):
+        self.daily_vessel_movements.to_csv('aupkl_daily_vessel_movements.csv', encoding='utf-8', index=False)
+
 def main():
     aupklsession = AuPklSession(debug=True)
     print(aupklsession.get_eta_by_name("HOEGH TRAPPER"))

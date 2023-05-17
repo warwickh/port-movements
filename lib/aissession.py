@@ -6,6 +6,8 @@ import json
 import yaml
 from geopy import distance
 import math, numpy as np
+import folium
+from folium import plugins 
    
 class AisSession:
     def __init__(self,
@@ -15,6 +17,7 @@ class AisSession:
         self.baseUrl = "https://qships.tmr.qld.gov.au/webx/"
         self.ship_data_file = 'ships.json'
         self.ship_data = None
+        self.world_map = folium.Map([30, 0], zoom_start=3)
         self.load_ships()
         asyncio.run(self.connect_ais_stream())
 
@@ -34,6 +37,10 @@ class AisSession:
                 f.write(json.dumps(self.ship_data, indent=4))
 
     def get_bearing(self, lat1, lon1, lat2, lon2):
+        lat1 = math.radians(lat1)
+        lon1 = math.radians(lon1)
+        lat2 = math.radians(lat2)
+        lon2 = math.radians(lon2)
         dLon = lon2 - lon1;
         y = math.sin(dLon) * math.cos(lat2);
         x = math.cos(lat1)*math.sin(lat2) - math.sin(lat1)*math.cos(lat2)*math.cos(dLon);
@@ -45,17 +52,20 @@ class AisSession:
         ship = self.ship_data[str(mmsi)]
         d = datetime.now()
         unixtime = int(round(datetime.timestamp(d)*1000))
-        last_time = float(ship["UPDATED"])
-        last_lat = float(ship["LAT"])
-        last_lon = float(ship["LON"])
-        trav_dist = distance.distance((lat, lon), (last_lat, last_lon)).km
-        millis = int(round(unixtime))-int(round(last_time))
-        trav_time = hours=(millis/(1000*60*60))%24
-        trav_speed = trav_dist/trav_time
-        trav_dir = self.get_bearing(lat, lon, last_lat, last_lon)
-        #print("Dist: %s"%trav_dist)
-        #print("Time: %s"%(trav_time))
-        #print("Speed %s"%trav_speed)#/1.852
+        try:
+            last_time = float(ship["UPDATED"])
+            last_lat = float(ship["LAT"])
+            last_lon = float(ship["LON"])
+            trav_dist = distance.distance((last_lat, last_lon),(lat, lon)).km
+            millis = int(round(unixtime))-int(round(last_time))
+            trav_time = (millis/(1000*60*60))%24
+            trav_speed = trav_dist/trav_time
+            trav_dir = self.get_bearing(last_lat, last_lon, lat, lon)
+        except:
+            trav_dist = 0
+            trav_time = 0
+            trav_speed = 0
+            trav_dir = 0
         print("Speed %s knts"%str(trav_speed/1.852))
         print("Dir: %s"%trav_dir)
         ship["UPDATED"] = str(unixtime)
@@ -65,12 +75,48 @@ class AisSession:
         ship["DIR"] = str(trav_dir)
         self.ship_data[str(mmsi)] = ship
         self.save_ships()
-
+        self.plot_all()
+        
     def get_distance(self, lat, lon, port):
-        port_data={'AUPKL': {'Latitude': '-34.46346', 'Longitude': '150.901482691176'}, 'AUMEL': {'Latitude': '-37.81325655', 'Longitude': '144.924152576608'}, 'AUBNE': {'Latitude': '-27.385741', 'Longitude': '153.17374430786'}, 'NZAKL': {'Latitude': '-36.9323169', 'Longitude': '174.784926235455'}, 'AUFRE': {'Latitude': '-32.0307289', 'Longitude': '115.7480727'}  }
-        
-        
+        port_data={'AUPKL': {'Latitude': '-34.46346', 'Longitude': '150.901482691176'}, 'AUMEL': {'Latitude': '-37.81325655', 'Longitude': '144.924152576608'}, 'AUBNE': {'Latitude': '-27.385741', 'Longitude': '153.17374430786'}, 'NZAKL': {'Latitude': '-36.9323169', 'Longitude': '174.784926235455'}, 'AUFRE': {'Latitude': '-32.0307289', 'Longitude': '115.7480727'}  }  
+        return
 
+    def plot_all(self):
+        self.load_ships()
+        self.world_map = folium.Map([30, 0], zoom_start=3)
+        for mmsi in self.ship_data.keys():
+            try:
+                ship = self.ship_data[mmsi]
+                #print(ship)
+                name = ship["SHIPNAME"]
+                last_time = float(ship["UPDATED"])
+                last_lat = float(ship["LAT"])
+                last_lon = float(ship["LON"])
+                trav_speed = float(ship["SPEED"])
+                heading = float(ship["DIR"])
+                d = datetime.now()
+                unixtime = int(round(datetime.timestamp(d)*1000))
+                millis = int(round(unixtime))-int(round(last_time)) 
+                trav_time = (millis/(1000*60*60))%24
+                if trav_time > (7*24): #Old data will be red
+                    color = '#f88'
+                else:
+                    color = '#8f8'
+                #print(name)
+                self.plot_ship(name, last_lat, last_lon, heading, trav_speed, color)
+            except:
+                pass 
+        self.world_map.save('index.html')
+    
+    def plot_ship(self, name, lat, lon, heading, speed, color):
+        print("Plotting: %s"%name)
+        plugins.BoatMarker(
+            popup = "%s(%.2fkn,%.2f°)"%(name,speed,heading),
+            location=(lat, lon),
+            heading=heading,
+            color=color
+        ).add_to(self.world_map)
+        
     async def connect_ais_stream(self):
         async with websockets.connect("wss://stream.aisstream.io/v0/stream") as websocket:
             subscribe_message = {"APIKey": self.ais_api_key, "BoundingBoxes": [[[-180, -90], [180, 90]]]}

@@ -165,10 +165,31 @@ class AuFreSession:
             (self.completed_movements['MOVE STATUS'] == "COMPLETED")]['MOVE START'].to_frame()
         return results        
 
+    def get_eta(self):
+        results = self.expected_movements.loc[self.expected_movements['MOVE TYPE'] == "ARRIVAL"].copy()#['MOVE START'].to_frame()
+        results['PORT_ETA'] = results['MOVE START']
+        results['PORT'] = 'AUFRE'
+        results = results[['PORT','SHIP', 'PORT_ETA']]
+        results.columns = ['PORT','SHIP_NAME', 'PORT_ETA']
+        return results
+
     def refresh_all(self):
-        self.expected_movements = self.get_expected_movements()
-        self.completed_movements = self.get_completed_movements()
+        try:
+            self.expected_movements = self.get_expected_movements()
+            self.completed_movements = self.get_completed_movements()
+        except:
+            print("Refresh failed. Loading from file")
+            self.expected_movements = pd.read_csv('aufre_expected_movements.csv')
+            self.completed_movements = pd.read_csv('aufre_completed_movements.csv')
+        if self.debug:
+            print(self.expected_movements)
+            print(self.completed_movements)
+        self.write_to_csv()
         return True
+    
+    def write_to_csv(self):
+        self.expected_movements.to_csv('aufre_expected_movements.csv', encoding='utf-8', index=False)
+        self.completed_movements.to_csv('aufre_completed_movements.csv', encoding='utf-8', index=False)
 
     def legacy_process(self, df):
         df = df.loc[df['Move Type'] == 'Arrival']

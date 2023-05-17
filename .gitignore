@@ -6,6 +6,7 @@ config.yml
 !requirements.txt
 ships.json
 mt_ships.json
+config.json
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
