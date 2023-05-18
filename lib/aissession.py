@@ -76,14 +76,11 @@ class AisSession:
         self.ship_data[str(mmsi)] = ship
         self.save_ships()
         self.plot_all()
-        
-    def get_distance(self, lat, lon, port):
-        port_data={'AUPKL': {'Latitude': '-34.46346', 'Longitude': '150.901482691176'}, 'AUMEL': {'Latitude': '-37.81325655', 'Longitude': '144.924152576608'}, 'AUBNE': {'Latitude': '-27.385741', 'Longitude': '153.17374430786'}, 'NZAKL': {'Latitude': '-36.9323169', 'Longitude': '174.784926235455'}, 'AUFRE': {'Latitude': '-32.0307289', 'Longitude': '115.7480727'}  }  
-        return
-
+       
     def plot_all(self):
         self.load_ships()
         self.world_map = folium.Map([30, 0], zoom_start=3)
+        self.plot_ports()
         for mmsi in self.ship_data.keys():
             try:
                 ship = self.ship_data[mmsi]
@@ -97,21 +94,34 @@ class AisSession:
                 d = datetime.now()
                 unixtime = int(round(datetime.timestamp(d)*1000))
                 millis = int(round(unixtime))-int(round(last_time)) 
-                trav_time = (millis/(1000*60*60))%24
-                if trav_time > (7*24): #Old data will be red
-                    color = '#f88'
-                else:
-                    color = '#8f8'
-                #print(name)
-                self.plot_ship(name, last_lat, last_lon, heading, trav_speed, color)
+                age = (millis/(1000*60*60))
+                #print("%s %s %s"%(int(round(unixtime)),int(round(last_time)), millis/(1000*60*60)))
+                #print("%s %s"%(name, age))
+                self.plot_ship(name, last_lat, last_lon, heading, trav_speed, age)
             except:
                 pass 
         self.world_map.save('index.html')
+
+    def plot_ports(self):
+        port_data={'AUPKL': {'Latitude': '-34.46346', 'Longitude': '150.901482691176'}, 'AUMEL': {'Latitude': '-37.81325655', 'Longitude': '144.924152576608'}, 'AUBNE': {'Latitude': '-27.385741', 'Longitude': '153.17374430786'}, 'NZAKL': {'Latitude': '-36.9323169', 'Longitude': '174.784926235455'}, 'AUFRE': {'Latitude': '-32.0307289', 'Longitude': '115.7480727'}  }  
+        for port in port_data.keys():
+            self.plot_port(port, port_data[port]['Latitude'],  port_data[port]['Longitude'])
+        return    
+
+    def plot_port(self, name, lat, lon):
+        folium.Marker(
+            popup = "%s"%(name),
+            location=(lat, lon),
+        ).add_to(self.world_map)
     
-    def plot_ship(self, name, lat, lon, heading, speed, color):
-        print("Plotting: %s"%name)
+    def plot_ship(self, name, lat, lon, heading, speed, age):
+        #print("Plotting: %s"%name)
+        if age > (2*24): #2d Old data will be red
+            color = '#f88'
+        else:
+            color = '#8f8'
         plugins.BoatMarker(
-            popup = "%s(%.2fkn,%.2f°)"%(name,speed,heading),
+            popup = "%s(%.2fkn,%.2f°) %d h"%(name,speed,heading, age),
             location=(lat, lon),
             heading=heading,
             color=color
