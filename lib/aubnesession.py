@@ -90,6 +90,21 @@ class AuBneSession:
         else:
             return value    
 
+    def remove_accents(self, a):
+        return unidecode.unidecode(a)
+        
+    def convert_string_time(self, value):
+        date_formats = ['%b %d %Y %I:%M%p','%Y-%m-%dT%H:%M:%S','%d/%m/%Y %H:%M','%d %b %Y %H:%M','%a %d %b %Y %H:%M']
+        for date_format in date_formats:
+            try:
+                time = datetime.strptime(value, date_format)
+                return(time.strftime('%d-%m-%Y %H:%M:%S'))
+            except:
+                pass
+        if self.debug:
+            print("No format found for %s"%value)
+        return ""
+        
     def get_request_time(self):
         dateTime = datetime.today()
         timeDelta = timedelta(hours=8) 
@@ -137,8 +152,8 @@ class AuBneSession:
         except:
             pass
         try:
-            df['ARR DATE'] = df['ARR DATE'].apply(self.convert_unix_time)#(tz_string, value):
-            df['DEP DATE'] = df['DEP DATE'].apply(self.convert_unix_time)#(tz_string, value):
+            df['ARR DATE'] = df['ARR DATE'].apply(self.convert_string_time)#(tz_string, value):
+            df['DEP DATE'] = df['DEP DATE'].apply(self.convert_string_time)#(tz_string, value):
         except:
             pass
         for column in df.columns:
@@ -150,15 +165,15 @@ class AuBneSession:
         df.to_csv(filename, encoding='utf-8', index=False)
         return df
                 
-    def get_exp_ship_movements(self):
+    def refresh_exp_ship_movements(self):
         report_name = 'exp_ship_movements'
         return self.get_report(report_name)
     
-    def get_comp_ship_movements(self):
+    def refresh_comp_ship_movements(self):
         report_name = 'comp_ship_movements'
         return self.get_report(report_name)
         
-    def get_vessels_at_berth(self):
+    def refresh_vessels_at_berth(self):
         report_name = 'vessels_at_berth'   
         return self.get_report(report_name)
 
@@ -201,12 +216,19 @@ class AuBneSession:
         results = results[['PORT', 'SHIP', 'PORT_ETA']]
         results.columns = ['PORT', 'SHIP_NAME', 'PORT_ETA']
         return results    
+
+    def get_in_port(self):
+        results = self.vessels_at_berth.copy()
+        results['PORT'] = 'AUBNE'
+        results = results[['PORT','ARR DATE','DEP DATE', 'SHIP']]
+        results.columns = ['PORT','ARR_DATE','DEP_DATE', 'SHIP_NAME']
+        return results   
         
     def refresh_all(self):
         try:
-            self.exp_ship_movements = self.get_exp_ship_movements()
-            self.comp_ship_movements = self.get_comp_ship_movements()
-            self.vessels_at_berth = self.get_vessels_at_berth()
+            self.exp_ship_movements = self.refresh_exp_ship_movements()
+            self.comp_ship_movements = self.refresh_comp_ship_movements()
+            self.vessels_at_berth = self.refresh_vessels_at_berth()
         except:
             print("Refresh failed. Loading from file") 
             self.exp_ship_movements = pd.read_csv('aubne_exp_ship_movements.csv')
@@ -236,6 +258,7 @@ def main():
     aubnesession = AuBneSession(maxSessionTimeSeconds = 60, debug=True)
     print(aubnesession.get_eta_by_name("MSC ALABAMA III"))
     print(aubnesession.get_ata_by_name("HOEGH TRAVELLER"))
+    print(aubnesession.get_in_port())
        
 if __name__ == "__main__":
     main()

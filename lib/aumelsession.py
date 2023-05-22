@@ -87,23 +87,15 @@ class AuMelSession:
         return unidecode.unidecode(a)
         
     def convert_string_time(self, value):
-        #      Mar  1 2023  1:30PM
-        try:
-            time = datetime.strptime(value, '%b %d %Y %I:%M%p')
-            return(time.strftime('%d-%m-%Y %H:%M:%S'))
-        except:
-            pass
-        try:
-            time = datetime.strptime(value, '%Y-%m-%dT%H:%M:%S')
-            return(time.strftime('%d-%m-%Y %H:%M:%S'))
-        except:
-            pass    
-        try:
-            time = datetime.strptime(value, '%d/%m/%Y %H:%M')
-            return(time.strftime('%d-%m-%Y %H:%M:%S'))
-        except:
-            pass
-        print("No format found for %s"%value)
+        date_formats = ['%b %d %Y %I:%M%p','%Y-%m-%dT%H:%M:%S','%d/%m/%Y %H:%M','%d %b %Y %H:%M','%a %d %b %Y %H:%M']
+        for date_format in date_formats:
+            try:
+                time = datetime.strptime(value, date_format)
+                return(time.strftime('%d-%m-%Y %H:%M:%S'))
+            except:
+                pass
+        if self.debug:
+            print("No format found for %s"%value)
         return ""
     
     def convert_unix_time(self, value):
@@ -177,8 +169,7 @@ class AuMelSession:
             (self.actual_movements['MOVEMENT_T'] == "ARRIVAL")]['TO_DATETIME'].to_frame()
         return results        
 
-    def get_eta(self):
-    
+    def get_eta(self):   
         results = self.expected_movements.loc[self.expected_movements['MOVEMENT_TYPE'] == "ARRIVAL"].copy()#['ACTL_MVMT_START_DATETIME'].to_frame()
         results['PORT_ETA'] = results[['ACTL_MVMT_START_DATETIME']]
         results['PORT'] = 'AUMEL'
@@ -186,6 +177,13 @@ class AuMelSession:
         results.columns = ['PORT','SHIP_NAME', 'PORT_ETA']
         return results
 
+    def get_in_port(self):
+        results = self.ships_in_port.copy()
+        results['PORT'] = 'AUMEL'
+        results = results[['PORT','ARR_DATEIME','DEP_DATETIME', 'SHIP_NAME']]
+        results.columns = ['PORT','ARR_DATE','DEP_DATE', 'SHIP_NAME']
+        return results 
+        
     def refresh_all(self):
         try:
             self.expected_movements = self.get_report('expected_movements')

@@ -82,28 +82,15 @@ class NzAklSession:
         return unidecode.unidecode(a)
         
     def convert_string_time(self, value):
-        #      Mar  1 2023  1:30PM
-        try:
-            time = datetime.strptime(value, '%b %d %Y %I:%M%p')
-            return(time.strftime('%d-%m-%Y %H:%M:%S'))
-        except:
-            pass
-        try:
-            time = datetime.strptime(value, '%Y-%m-%dT%H:%M:%S')
-            return(time.strftime('%d-%m-%Y %H:%M:%S'))
-        except:
-            pass    
-        try:
-            time = datetime.strptime(value, '%d/%m/%Y %H:%M')
-            return(time.strftime('%d-%m-%Y %H:%M:%S'))
-        except:
-            pass
-        try:
-            time = datetime.strptime(value, '%d %b %Y %H:%M')
-            return(time.strftime('%d-%m-%Y %H:%M:%S'))
-        except:
-            pass
-        print("No format found for %s"%value)
+        date_formats = ['%b %d %Y %I:%M%p','%Y-%m-%dT%H:%M:%S','%d/%m/%Y %H:%M','%d %b %Y %H:%M','%a %d %b %Y %H:%M']
+        for date_format in date_formats:
+            try:
+                time = datetime.strptime(value, date_format)
+                return(time.strftime('%d-%m-%Y %H:%M:%S'))
+            except:
+                pass
+        if self.debug:
+            print("No format found for %s"%value)
         return ""
     
     def convert_unix_time(self, value):
@@ -187,6 +174,17 @@ class NzAklSession:
         results.columns = ['PORT', 'SHIP_NAME', 'PORT_ETA']
         return results    
 
+    def get_in_port(self):
+        results = self.vessels_in_port.copy()
+        results['PORT'] = 'NZAKL'
+        #results['ARR_DATE'] = self.get_request_time().strftime('%d-%m-%Y %H:%M:%S')#It was sometime before now
+        #print(results[['PORT','ARR_DATE','DEPARTURE', 'SHIP']])
+        results['ARR_DATE']= results['ARRIVAL'].str.strip().apply(self.convert_string_time)
+        results['DEP_DATE']= results['DEPARTS'].str.strip().apply(self.convert_string_time)
+        results = results[['PORT','ARR_DATE','DEP_DATE', 'VESSEL']]
+        results.columns = ['PORT','ARR_DATE','DEP_DATE', 'SHIP_NAME']
+        return results  
+
     def legacy_process(self, df):
         df = df[['Vessel', 'Arrival']]
         df.columns = ['ship_name', 'port_eta']
@@ -196,8 +194,8 @@ class NzAklSession:
                
 def main():
     nzaklsession = NzAklSession(debug=True)
-    print(nzaklsession.get_eta_by_name("OLOMANA"))
-    print(nzaklsession.get_ata_by_name("OLOMANA"))
+    print(nzaklsession.get_in_port())
+    #print(nzaklsession.get_ata_by_name("OLOMANA"))
     
 if __name__ == "__main__":
     main()

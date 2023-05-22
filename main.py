@@ -2,23 +2,11 @@ from lib import aumelsession, aufresession, aubnesession, aupklsession,nzaklsess
 import json
 import pandas as pd
 
-def convert_config(config_filename):
-    config = None
-    with open(config_filename, "r") as stream:
-        try:
-            config = yaml.safe_load(stream)
-        except yaml.YAMLError as exc:
-            print(exc)
-    with open('config.json', 'w') as json_file:
-        json. dump(config, json_file)
-    return config                   
-
 def load_config(config_filename):
     with open(config_filename, 'r') as f:
         config = json.load(f)
     return config
-
-                    
+       
 def main():
     debug=False
     config_filename = 'config.json'
@@ -32,17 +20,10 @@ def main():
     aubne = aubnesession.AuBneSession(debug=debug)
     db_session = dbsession.DbSession(db_server, database)
     
-    #print(db_session.get_table("T_ANZ_DATAIF3"))
-    #print(db_session.get_table("T_Cargo_ONWATER"))
-    #print(db_session.get_table("T_Cargo_Booked_Not_Shipped"))
-    #print(db_session.get_query('SELECT "Discharge Port Code","Destination Port Code" FROM T_Cargo_ONWATER where "Discharge Port Code"<>"Destination Port Code"'))
-    #print(db_session.get_query('SELECT "Vessel Name","B/L No","Origin Port Code","Discharge Port Code","Discharge Port Arrival Date","Destination Port Code" From T_Cargo_ONWATER'))
+    trans_ship = db_session.get_query("SELECT * FROM T_Cargo_ONWATER WHERE [Discharge Port Code]<>[Destination Port Code]")
+    trans_ship.to_csv('trans_ship.csv')
     onwater_short = db_session.get_query('SELECT "Vessel Name","B/L No","Origin Port Code","Discharge Port Code","Discharge Port Arrival Date","Destination Port Code" From T_Cargo_ONWATER')
     onwater_short["Vessel Name"] = onwater_short["Vessel Name"].apply(db_session.remove_accents).str.strip().str.upper()
-    #print(onwater_short)
-    #bl = pd.concat(onwater_short["Vessel Name"],onwater_short["B/L No"]).unique()
-    #bl = onwater_short.groupby(["Vessel Name","B/L No","Discharge Port Code","Discharge Port Arrival Date","Destination Port Code"]).count().reset_index()
-    #bl.columns = bl.columns.str.upper()
     bl = db_session.get_table("T_Cargo_ONWATER")
     bl["Vessel Name"] = bl["Vessel Name"].apply(db_session.remove_accents).str.strip().str.upper()
     
@@ -60,6 +41,12 @@ def main():
     print(bl)
     cow_upd.to_csv('cow.csv')
     bl.to_csv('bl.csv')
+    
+    print(aubne.get_in_port())
+    print(aupkl.get_in_port())
+    print(aufre.get_in_port())
+    print(nzakl.get_in_port())
+    print(aumel.get_in_port())
     
 if __name__ == "__main__":
     main()

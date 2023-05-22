@@ -90,23 +90,15 @@ class AuPklSession:
         return unidecode.unidecode(a)
         
     def convert_string_time(self, value):
-        #      Mar  1 2023  1:30PM
-        try:
-            time = datetime.strptime(value, '%b %d %Y %I:%M%p')
-            return(time.strftime('%d-%m-%Y %H:%M:%S'))
-        except:
-            pass
-        try:
-            time = datetime.strptime(value, '%Y-%m-%dT%H:%M:%S')
-            return(time.strftime('%d-%m-%Y %H:%M:%S'))
-        except:
-            pass    
-        try:
-            time = datetime.strptime(value, '%d/%m/%Y %H:%M')
-            return(time.strftime('%d-%m-%Y %H:%M:%S'))
-        except:
-            pass
-        print("No format found for %s"%value)
+        date_formats = ['%b %d %Y %I:%M%p','%Y-%m-%dT%H:%M:%S','%d/%m/%Y %H:%M','%d %b %Y %H:%M','%a %d %b %Y %H:%M']
+        for date_format in date_formats:
+            try:
+                time = datetime.strptime(value, date_format)
+                return(time.strftime('%d-%m-%Y %H:%M:%S'))
+            except:
+                pass
+        if self.debug:
+            print("No format found for %s"%value)
         return ""
     
     def convert_unix_time(self, value):
@@ -124,11 +116,12 @@ class AuPklSession:
 
     def get_request_time(self):
         dateTime = datetime.today()
-        timeDelta = timedelta(hours=8) 
+        timeDelta = timedelta(hours=10) 
         tzObject = timezone(timeDelta)
-        perthTimeNow = dateTime.replace(tzinfo=tzObject)
-        print(perthTimeNow.isoformat("T","auto"))
-        print(perthTimeNow.isoformat("T","milliseconds"))
+        timeNow = dateTime.replace(tzinfo=tzObject)
+        #print(perthTimeNow.isoformat("T","auto"))
+        #print(perthTimeNow.isoformat("T","milliseconds"))
+        return timeNow
 
     def get_report(self):
         res = self.retrieveContent(self.baseUrl)
@@ -178,10 +171,13 @@ class AuPklSession:
         results.columns = ['PORT','SHIP_NAME', 'PORT_ETA']
         return results
     
-    def get_is_inport(self, vessel_name):
-        results = self.daily_vessel_movements.loc[(self.daily_vessel_movements['VESSELNAME'] == vessel_name) &
-            (self.daily_vessel_movements['INPORT'] == "Y")]['TIME'].to_frame()
-        return len(results)>0
+    def get_in_port(self):
+        results = self.daily_vessel_movements.loc[(self.daily_vessel_movements['INPORT'] == "Y")].copy()
+        results['PORT'] = 'AUPKL'
+        results['ARR_DATE'] = self.get_request_time().strftime('%d-%m-%Y %H:%M:%S')#It was sometime before now
+        results = results[['PORT','ARR_DATE','TIME', 'VESSELNAME']]
+        results.columns = ['PORT','ARR_DATE','DEP_DATE', 'SHIP_NAME']
+        return results
     
     def refresh_all(self):
         try:
@@ -201,8 +197,8 @@ def main():
     aupklsession = AuPklSession(debug=True)
     print(aupklsession.get_eta_by_name("HOEGH TRAPPER"))
     #print(aubnesession.get_ata_by_name("HOEGH TRAVELLER"))
-    print(aupklsession.get_is_inport("HOEGH TRAPPER"))
-    print(aupklsession.get_is_inport("CORONA SPLENDOR"))
+    print(aupklsession.get_in_port())
+    #print(aupklsession.get_is_inport("CORONA SPLENDOR"))
     
 if __name__ == "__main__":
     main()

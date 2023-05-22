@@ -29,6 +29,7 @@ class AuFreSession:
         self.userAgent = agent
         self.expected_movements = None
         self.completed_movements = None
+        self.ships_in_port = None
         self.get_session()
         self.refresh_all()
 
@@ -91,46 +92,83 @@ class AuFreSession:
         dateTime = datetime.today()
         timeDelta = timedelta(hours=8) 
         tzObject = timezone(timeDelta)
-        perthTimeNow = dateTime.replace(tzinfo=tzObject)
-        print(perthTimeNow.isoformat("T","auto"))
-        print(perthTimeNow.isoformat("T","milliseconds"))
+        timeNow = dateTime.replace(tzinfo=tzObject)
+        #print(perthTimeNow.isoformat("T","auto"))
+        #print(perthTimeNow.isoformat("T","milliseconds"))
+        return timeNow
+        
 
-    def get_report(self, report_code, from_time, to_time):
-        headers = ["ID","VISIT #","SHIP","SHIP TYPE","MOVE TYPE","MOVE STATUS","MOVE START","FROM LOCATION","TO LOCATION","AGENCY","LAST PORT","NEXT PORT","VESSEL ID"]
+    def get_report(self, report_name):
         res = self.retrieveContent(self.baseUrl)
         soup = BeautifulSoup(res.text, "html.parser") 
         for script in soup.find_all("script"):
             if script.string is not None and "scope.__stamp" in script.string:
                 scope_stamp = re.findall(r"scope.__stamp = \'([^\']*)';", str(script.string))[0]       
+        #print(scope_stamp)
         request_id = "%13d-%d"%(int(datetime.now().timestamp() * 1000),random.randint(1,10))
-        get_data_query = {'request': {'requestID': request_id, 'reportCode': report_code, 'dataSource': None, 'filterName': None,
-            'parameters': [{'__type': 'ParameterValueDTO:#WebX.Core.DTO', 'sName': 'FROM_TIME', 'iValueType': 0, 
-            'aoValues': [{'__type': 'ValueItemDTO:#WebX.Core.DTO', 'Value': from_time,}, ],},
-                {'__type': 'ParameterValueDTO:#WebX.Core.DTO','sName': 'TO_TIME', 'iValueType': 0, 'aoValues': [{'__type': 'ValueItemDTO:#WebX.Core.DTO','Value': to_time,},],},],
-            'metaVersion': 0, '_type': 'TGetDataXREQ:#WebX.Services', 'stamp': "%s\u000bfmp.public/main-view"%scope_stamp,},}
+        if report_name == 'expected_movements':
+            report_code = 'FMP-WEB-0001'
+            from_time = self.next_week()[0]
+            to_time = self.next_week()[1]
+            get_data_query = {'request': {'requestID': request_id, 'reportCode': report_code, 'dataSource': None, 'filterName': None,
+                'parameters': [{'__type': 'ParameterValueDTO:#WebX.Core.DTO', 'sName': 'FROM_TIME', 'iValueType': 0, 
+                'aoValues': [{'__type': 'ValueItemDTO:#WebX.Core.DTO', 'Value': from_time,}, ],},
+                    {'__type': 'ParameterValueDTO:#WebX.Core.DTO','sName': 'TO_TIME', 'iValueType': 0, 'aoValues': [{'__type': 'ValueItemDTO:#WebX.Core.DTO','Value': to_time,},],},],
+                'metaVersion': 0, '_type': 'TGetDataXREQ:#WebX.Services', 'stamp': "%s\u000bfmp.public/main-view"%scope_stamp,},}
+            headers = ["ID","VISIT #","SHIP","SHIP TYPE","MOVE TYPE","MOVE STATUS","MOVE START","FROM LOCATION","TO LOCATION","AGENCY","LAST PORT","NEXT PORT","VESSEL ID"]
+        elif report_name == 'completed_movements':
+            report_code = 'FMP-WEB-0001'
+            from_time = self.last_week()[0]
+            to_time = self.last_week()[1]
+            start_date = (datetime.combine(date.today(), datetime.min.time()) + timedelta(days=-10)).strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3]
+            end_date = (datetime.combine(date.today(), datetime.min.time())).replace(hour=23, minute=59, second=59).strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3]       
+            get_data_query = {'request': {'requestID': request_id, 'reportCode': report_code, 'dataSource': None, 'filterName': None,
+                'parameters': [{'__type': 'ParameterValueDTO:#WebX.Core.DTO', 'sName': 'FROM_TIME', 'iValueType': 0, 
+                'aoValues': [{'__type': 'ValueItemDTO:#WebX.Core.DTO', 'Value': from_time,}, ],},
+                    {'__type': 'ParameterValueDTO:#WebX.Core.DTO','sName': 'TO_TIME', 'iValueType': 0, 'aoValues': [{'__type': 'ValueItemDTO:#WebX.Core.DTO','Value': to_time,},],},],
+                'metaVersion': 0, '_type': 'TGetDataXREQ:#WebX.Services', 'stamp': "%s\u000bfmp.public/main-view"%scope_stamp,},}  
+            headers = ["ID","VISIT #","SHIP","SHIP TYPE","MOVE TYPE","MOVE STATUS","MOVE START","FROM LOCATION","TO LOCATION","AGENCY","LAST PORT","NEXT PORT","VESSEL ID"]
+        elif report_name == 'ships_in_port':
+            report_code = 'FMP-WEB-0004'
+            get_data_query = {'request': {'requestID': request_id, 'reportCode': report_code, 'dataSource': None, 'filterName': None,
+                'parameters': [],
+                'metaVersion': 0, '_type': 'TGetDataXREQ:#WebX.Services', 'stamp': "%s\u000bfmp.public/main-view"%scope_stamp,},}  
+            headers = ["ID", "VISIT #","BERTH/ANCHORAGE","LOCATION TYPE", "VESSEL ID","SHIP", "TYPE", "DEPARTURE","TO LOCATION", "AGENCY", "LAST PORT", "NEXT PORT", "VOYAGE ID", "FP VISIT ID"]
+        else:
+            print("Invalid code")
         res = self.retrieveContent(self.dataUrl, method="post", postData=get_data_query)
         data = res.json()
         #print(data)
         df = pd.DataFrame(data['d']['Tables'][0]['Data'])
         df.columns = headers
-        df['MOVE START'] = df['MOVE START'].apply(self.convert_unix_time)#(tz_string, value):
+        try:
+            df['MOVE START'] = df['MOVE START'].apply(self.convert_unix_time)#(tz_string, value):        
+        except:
+            pass
+        try:
+            df['DEPARTURE'] = df['DEPARTURE'].apply(self.convert_unix_time)#(tz_string, value):
+        except:
+            pass
         for column in df.columns:
             try:
                 df[column] = df[column].str.strip().str.upper()
             except:
-                pass
-        filename = 'aufre_%s.csv'%report_code
+                pass            
+        filename = 'aufre_%s.csv'%report_name
         df.to_csv(filename, encoding='utf-8', index=False)
-        print(df)
         return df
-        
-    def get_expected_movements(self):
-        report_code = 'FMP-WEB-0001' 
-        return self.get_report(report_code, self.next_week()[0], self.next_week()[1])
 
-    def get_completed_movements(self):
-        report_code = 'FMP-WEB-0002'   
-        return self.get_report(report_code, self.last_week()[0], self.last_week()[1])
+    def refresh_expected_movements(self):
+        report_name = 'expected_movements'
+        return self.get_report(report_name)
+
+    def refresh_completed_movements(self):
+        report_name = 'completed_movements'
+        return self.get_report(report_name)
+
+    def refresh_ships_in_port(self):
+        report_name = 'ships_in_port'   
+        return self.get_report(report_name)
 
     def next_week(self):
         from_time = datetime.combine(date.today(), datetime.min.time()).strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3]
@@ -172,24 +210,37 @@ class AuFreSession:
         results = results[['PORT','SHIP', 'PORT_ETA']]
         results.columns = ['PORT','SHIP_NAME', 'PORT_ETA']
         return results
-
+    
+    def get_in_port(self):
+        results = self.ships_in_port.copy()
+        results['PORT'] = 'AUFRE'
+        results['ARR_DATE'] = self.get_request_time().strftime('%d-%m-%Y %H:%M:%S')#It was sometime before now
+        #print(results[['PORT','ARR_DATE','DEPARTURE', 'SHIP']])
+        results = results[['PORT','ARR_DATE','DEPARTURE', 'SHIP']]
+        results.columns = ['PORT','ARR_DATE','DEP_DATE', 'SHIP_NAME']
+        return results  
+    
     def refresh_all(self):
         try:
-            self.expected_movements = self.get_expected_movements()
-            self.completed_movements = self.get_completed_movements()
+            self.expected_movements = self.refresh_expected_movements()
+            self.completed_movements = self.refresh_completed_movements()
+            self.ships_in_port = self.refresh_ships_in_port()
         except:
             print("Refresh failed. Loading from file")
             self.expected_movements = pd.read_csv('aufre_expected_movements.csv')
             self.completed_movements = pd.read_csv('aufre_completed_movements.csv')
+            self.ships_in_port = pd.read_csv('aufre_ships_in_port.csv')
         if self.debug:
             print(self.expected_movements)
             print(self.completed_movements)
+            print(self.ships_in_port)
         self.write_to_csv()
         return True
     
     def write_to_csv(self):
         self.expected_movements.to_csv('aufre_expected_movements.csv', encoding='utf-8', index=False)
         self.completed_movements.to_csv('aufre_completed_movements.csv', encoding='utf-8', index=False)
+        self.ships_in_port.to_csv('aufre_ships_in_port.csv', encoding='utf-8', index=False)
 
     def legacy_process(self, df):
         df = df.loc[df['Move Type'] == 'Arrival']
@@ -201,8 +252,9 @@ class AuFreSession:
         
 def main():
     aufresession = AuFreSession(debug=True)
-    print(aufresession.get_eta_by_name("HOEGH TOKYO"))
-    print(aufresession.get_ata_by_name("UNION TAYLOR"))
+    #print(aufresession.get_eta_by_name("HOEGH TOKYO"))
+    #print(aufresession.get_ata_by_name("UNION TAYLOR"))
+    print(aufresession.get_in_port())
     
 if __name__ == "__main__":
     main()
