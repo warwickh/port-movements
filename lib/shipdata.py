@@ -167,8 +167,9 @@ def init_load_ships():
 
 def main():
     shipdata = ShipData()
-    shipdata.locate_ship_in_port("HOEGH OSLO", "AUPKL")
-    shipdata.locate_ship_in_port("HOEGH CHIBA", "AUBNE")
+    #shipdata.locate_ship_in_port("HOEGH OSLO", "AUPKL")
+    #shipdata.locate_ship_in_port("HOEGH CHIBA", "AUBNE")
+    shipdata.locate_ship_in_port("HOEGH TOKYO", "AUFRE")
 
 if __name__ == "__main__":
     main()
