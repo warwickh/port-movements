@@ -1,4 +1,3 @@
-config.yml
 *.dat
 *.txt
 *.csv
@@ -7,6 +6,7 @@ config.yml
 ships.json
 mt_ships.json
 config.json
+config.yml
 index.html
 
 # Byte-compiled / optimized / DLL files
