@@ -8,6 +8,8 @@ mt_ships.json
 config.json
 config.yml
 index.html
+*.json
+
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

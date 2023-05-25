@@ -36,11 +36,19 @@ class ShipData:
         
     def get_ship(self, mmsi):
         return self.ship_data[str(mmsi)]
+
+    def ships_to_db(self):
+        for mmsi in self.ship_data.keys():
+            ship = self.ship_data[mmsi]
+            ship['MMSI'] = str(mmsi)
+            self.post_data('last_pos/', ship)
         
     def load_ships(self):
         try:
+            #print("Opening %s"%self.ship_data_file)
             with open(self.ship_data_file) as f:
                 self.ship_data = json.load(f)
+                #self.ships_to_db()
         except:
             print("File not available %s"%self.ship_data_file)
 
@@ -88,7 +96,7 @@ class ShipData:
             ship["DIR"] = str(ais_message['TrueHeading'])
             self.ship_data[str(ais_message['UserID'])] = ship
             ship['MMSI'] = str(ais_message['UserID'])
-            ais_message['Timestamp'] = str(unixtime)[:-3]
+            ais_message['Timestamp'] = str(unixtime)[0:10]
             #self.post_data('update_ais/', ais_message)
             self.post_data('last_pos/', ship)
             self.save_ships()
