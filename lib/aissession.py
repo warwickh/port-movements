@@ -6,7 +6,10 @@ import json
 import yaml
 
 import shipdata
-   
+
+map_path = '/srv/fastapi/public/index.html'
+
+
 class AisSession:
     def __init__(self,
                  ais_api_key='',
@@ -14,7 +17,7 @@ class AisSession:
                  db_api_key='',
                  debug = False):
         self.ais_api_key = ais_api_key
-        self.ships = shipdata.ShipData(db_api_url, db_api_key)
+        self.ships = shipdata.ShipData(db_api_url, db_api_key, map_path=map_path)
         if self.ais_api_key:
             asyncio.run(self.connect_ais_stream())
         
@@ -30,6 +33,7 @@ class AisSession:
                     message = json.loads(message_json)
                     message_type = message["MessageType"]
                     if message_type == "PositionReport":
+                        #print(message['Message']['PositionReport'])
                         self.ships.process_pos_report(message['Message']['PositionReport'])
             except websockets.ConnectionClosed:
                 print("Closed")
@@ -59,7 +63,7 @@ def main():
     #print(config)
     ais_api_key = config["ais_api_key"]
     db_api_key = config["db_api_key"]
-    db_api_url = config["db_api_url"]
+    db_api_url = config["db_api_url_local"]
     aissession = AisSession(ais_api_key, db_api_url, db_api_key)
 
 if __name__ == "__main__":
