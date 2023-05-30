@@ -42,14 +42,14 @@ class ShipData:
     def get_ship(self, mmsi):
         return self.ship_data[str(mmsi)]
 
-    def ships_to_db(self):
-        self.align_fields()
+    def load_ships_to_db(self):
+        #self.align_fields()
         for mmsi in self.ship_data.keys():
             ship = self.ship_data[mmsi]
             #print(ship)
             print("Sending %s"%ship)
-            #print(self.post_data('last_pos/', ship))
-            #time.sleep(2)
+            print(self.post_data('last_pos/', ship))
+            time.sleep(1)
 
     def align_fields(self):
         ship_data = {}
@@ -246,9 +246,9 @@ def main():
     config_filename = 'config.json'
     config = load_json_config(config_filename)
     db_api_key = config["db_api_key"]
-    db_api_url = config["db_api_url"] 
+    db_api_url = config["db_api_url_local"] 
     shipdata = ShipData(db_api_url, db_api_key)
-    #shipdata.ships_to_db()
+    shipdata.load_ships_to_db()
     #shipdata.locate_ship_in_port("HOEGH BANGKOK", "AUPKL")
     #shipdata.locate_ship_in_port("HOEGH CHIBA", "AUBNE")
     #shipdata.locate_ship_in_port("HOEGH TOKYO", "AUFRE")
