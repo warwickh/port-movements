@@ -9,7 +9,10 @@ config.json
 config.yml
 index.html
 *.json
-
+*.pdf
+poppler/
+images/
+archive/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

@@ -17,21 +17,22 @@ import re
 import pandas as pd
 import ast
 import unidecode
+import cloudscraper
 
-class HoeghSession:
+class MmsiSearch:
     def __init__(self,
-                 sessionFile='hoegh_session.dat',
+                 sessionFile='balticshipping_session.dat',
                  maxSessionTimeSeconds = 60 * 30,
                  agent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/110.0.0.0 Safari/537.36',
                  debug = False):
      
-        self.dataUrl = "https://m.hoegh.com/vesselintegration/rest/"#vessel/"#ASIA/schedule/2023-05-30/2023-07-30"
-        self.baseUrl = "https://www.hoeghautoliners.com/sailing-schedule"
+        self.dataUrl = "https://www.balticshipping.com/"
+        self.baseUrl = "https://www.balticshipping.com"
         self.debug = debug
         self.maxSessionTime = maxSessionTimeSeconds  
         self.sessionFile = sessionFile
+        self.scraper = cloudscraper.create_scraper()
         self.userAgent = agent
-        self.exp_ship_schedule = None
         self.get_session()
         #self.refresh_all()
 
@@ -69,14 +70,57 @@ class HoeghSession:
                 print('updated session cache-file %s' % self.sessionFile)
 
     def retrieveContent(self, url, method = "get", postData = None):
-        if method == 'get':
+        if method == 'scrape':
+            res = self.scraper.get(url)
+        elif method == 'get':
             res = self.session.get(url)
         else:
-            #res = self.session.post(url , data = postData)
-            res = self.session.post(url , json = postData)
-        self.saveSessionToCache()            
+            res = self.session.post(url , data = postData)
+            #res = self.session.post(url , json = postData)
+        #self.saveSessionToCache()            
         return res
-    
+
+    def search_mmsi(self, vessel_name):
+        mmsi = None
+        vessel_name = vessel_name.strip().upper()
+        url = "%s"%(self.dataUrl)
+        payload = {
+            "request[0][module]": "ships",
+            "request[0][action]": "list",
+            "request[0][id]": "0",
+            "request[0][data][0][name]": "search_id",
+            "request[0][data][0][value]": "0",
+            "request[0][data][1][name]": "name",
+            "request[0][data][1][value]": vessel_name,
+            "request[0][data][2][name]": "imo",
+            "request[0][data][2][value]": "",
+            "request[0][data][3][name]": "ship_type",
+            "request[0][data][3][value]": "12",
+            "request[0][data][4][name]": "page",
+            "request[0][data][4][value]": "0",
+            "request[0][sort]": "",
+            "request[0][limit]": "9",
+            "request[0][stamp]": "0",
+            "request[1][module]": "top_stat",
+            "request[1][action]": "list",
+            "request[1][id]": "0",
+            "request[1][data]": "",
+            "request[1][sort]": "",
+            "request[1][limit]": "",
+            "request[1][stamp]": "0"
+        }
+        res = self.retrieveContent(url, method = "post", postData = payload)
+        #print(res)
+        data = res.json()
+        print(res)
+        print(data)
+        vessel_list = data["data"]["request"][0]["ships"]
+        for vessel in vessel_list:
+            if vessel["data"]["name"].strip().upper() == vessel_name:
+                mmsi = vessel["data"]["mmsi"]
+                print("Found match %s %s"%(vessel_name, mmsi))
+        return mmsi
+        
     def convert_unix_time(self, value):
         #print(value)
         pattern = "\/Date\((\d{10})\d{3}([+-])(\d{2})\d{2}"
@@ -186,17 +230,22 @@ class HoeghSession:
         return schedule
         
 def main():
-    hoeghsession = HoeghSession(debug=True)
+    mmsisearch = MmsiSearch(debug=True)
+    vessels = ["HMM MIR", "MAERSK SEBAROK"]
+    for vessel in vessels:
+        mmsi = mmsisearch.search_mmsi(vessel)
+        print(mmsi)
+    #print(hapagsession.retrieveContent("https://www.hapag-lloyd.cn/en/online-business/track/track-by-booking-solution.html?blno=HLCUGOA230499437"))
     #print(hoeghsession.get_vessel_list())
     #print(hoeghsession.get_schedule_by_name("TRPR","2023-05-25","2023-07-30"))
     #print(hoeghsession.next_60_days())
-    print(hoeghsession.get_vessel_code("HOEGH TRAPPER"))
-    print(hoeghsession.get_scheduled_arrival("HOEGH TRAPPER", "NZAKL"))
-    print(hoeghsession.get_scheduled_arrival("HOEGH BANGKOK", "NZAKL"))
-    schedule = hoeghsession.get_schedule("HOEGH BANGKOK")
-    for stop in schedule:
+    #print(hoeghsession.get_vessel_code("HOEGH TRAPPER"))
+    #print(hoeghsession.get_scheduled_arrival("HOEGH TRAPPER", "NZAKL"))
+    #print(hoeghsession.get_scheduled_arrival("HOEGH BANGKOK", "NZAKL"))
+    #schedule = hoeghsession.get_schedule("HOEGH BANGKOK")
+    #for stop in schedule:
         #print(stop)
-        print("%s %s"%(stop['port_CODE'],datetime.fromtimestamp(int(str(stop['arrival_DATE'])[:10]))))
+    #    print("%s %s"%(stop['port_CODE'],datetime.fromtimestamp(int(str(stop['arrival_DATE'])[:10]))))
     
 if __name__ == "__main__":
     main()
