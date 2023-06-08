@@ -3,7 +3,17 @@ import pdf2image
 import tempfile
 import json
 from PyPDF2 import PdfReader
+from pdfminer.layout import LAParams, LTTextBox, LTTextLine
+from pdfminer.pdfpage import PDFPage
+from pdfminer.pdfinterp import PDFResourceManager
+from pdfminer.pdfinterp import PDFPageInterpreter
+from pdfminer.converter import PDFPageAggregator
 import re
+
+"""
+Currently using 2 methods for extraction. TODO move main container info to pdfminer extraction
+
+"""
 
 #container_regex = r"([A-Z]{4})\s+([0-9]{7})\s+([0-9]+)\s+UNITS\s+\d+.+\d*\s+SEAL:\s*.*MTQ\s+(\D{3}\d{7})\s+VAN\s*(\d{8})(?:\s*(\d{8}))?\s*SERIAL NR\s*([A-Z,0-9]{17})(?:\s*([A-Z,0-9]{17}))?\s*MODEL\s*([A-Z,0-9]+\s{1}[A-Z,0-9]*)\s*(?:([A-Z,0-9]+\s{1}[A-Z,0-9]*))\s*HS CODE (\d+)"
 
@@ -22,15 +32,19 @@ class PdfWaybill:
         self.containers = {}
         self.vehicles = {}
         self.waybills = {}
+        self.ports = {}
         self.total_units = 0
         self.text = {}
         self.swb_no = ""
         self.loaded = False
         self.infile_name = infile_name
         if infile_name:
-            self.reader = PdfReader(infile_name)
-            self.load_text()
-            self.loaded = self.load_containers()
+            if self.load_ports():
+                self.reader = PdfReader(infile_name)
+                self.load_text()
+                self.loaded = self.load_containers()
+            else:
+                print("Ports not loaded correctly")
         else:
             print("Init without file")
         if self.loaded:
@@ -92,6 +106,7 @@ class PdfWaybill:
         self.waybills[self.swb_no]={}
         self.waybills[self.swb_no]["vehicles"]= self.vehicles
         self.waybills[self.swb_no]["containers"]= self.containers
+        self.waybills[self.swb_no]["ports"] = self.ports
         #print(self.containers)
         #print(self.waybills)
         #print(len(self.vehicles))
@@ -105,12 +120,34 @@ class PdfWaybill:
             self.save_page(page, text[page])
         self.text = text         
         #print(len(self.text))
+        #print(self.text)
         self.loaded = True
 
     def save_page(self, page, text):
        with open("%s_%s.txt"%(self.infile_name, page), "w") as f:
         f.write(text)
 
+    def load_ports(self):
+        fp = open(self.infile_name, 'rb')
+        rsrcmgr = PDFResourceManager()
+        laparams = LAParams()
+        device = PDFPageAggregator(rsrcmgr, laparams=laparams)
+        interpreter = PDFPageInterpreter(rsrcmgr, device)
+        pages = PDFPage.get_pages(fp)
+        interpreter.process_page(next(pages))
+        layout = device.get_result()
+        for lobj in layout:
+            if isinstance(lobj, LTTextBox) and 7<=lobj.bbox[0]<=8 and 16<=lobj.bbox[1]<=17:
+                for line in lobj:
+                    if isinstance(line, LTTextLine):
+                        if 7<=line.bbox[0]<=8 and 451<=line.bbox[1]<=452:
+                            print("Origin: %s"%line.get_text().strip())
+                            self.ports["origin"] = line.get_text().strip()
+                        if 7<=line.bbox[0]<=8 and 427<=line.bbox[1]<=428:
+                            print("Dest: %s"%line.get_text().strip())
+                            self.ports["dest"] = line.get_text().strip()
+        return self.ports["origin"] and self.ports["dest"]
+        
 def main():
     files = ["MCOP0101_651482249.pdf", "MCOP0101_651482615.pdf"]
     for file in files:
